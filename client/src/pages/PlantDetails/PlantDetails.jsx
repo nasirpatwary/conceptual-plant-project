@@ -90,11 +90,6 @@ const PlantDetails = () => {
           <hr className='my-6' />
 
           <PurchaseModal closeModal={closeModal} isOpen={isOpen} />
-
-          <div className='md:col-span-3 order-first md:order-last mb-10'>
-            {/* RoomReservation */}
-            {/* <RoomReservation room={room} /> */}
-          </div>
         </div>
       </div>
     </Container>
