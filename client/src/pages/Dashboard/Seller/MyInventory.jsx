@@ -1,8 +1,21 @@
 import { Helmet } from 'react-helmet-async'
-
 import PlantDataRow from '../../../components/Dashboard/TableRows/PlantDataRow'
-
+import { useQuery } from '@tanstack/react-query'
+import useAxiosSecure from '../../../hooks/useAxiosSecure'
+import LoadingSpinner from '../../../components/Shared/LoadingSpinner'
+import ErrorPage from '../../ErrorPage'
 const MyInventory = () => {
+  const axiosSecure = useAxiosSecure()
+  const { data: plants = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["plant-seller"],
+    queryFn: async () => {
+      const { data } = await axiosSecure.get("/plants/seller");
+      return data
+    }
+  })
+  if (isLoading) return <LoadingSpinner />
+
+  if (isError) return <ErrorPage />
   return (
     <>
       <Helmet>
@@ -61,7 +74,13 @@ const MyInventory = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <PlantDataRow />
+                  {
+                    plants.map(plant =>
+                      <PlantDataRow
+                        key={plant._id}
+                        plant={plant} refetch={refetch}>
+                      </PlantDataRow>)
+                  }
                 </tbody>
               </table>
             </div>

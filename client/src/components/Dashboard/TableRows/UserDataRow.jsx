@@ -1,19 +1,36 @@
 import { useState } from 'react'
 import UpdateUserModal from '../../Modal/UpdateUserModal'
 import PropTypes from 'prop-types'
-const UserDataRow = () => {
+import useAxiosSecure from '../../../hooks/useAxiosSecure'
+import toast from 'react-hot-toast'
+const UserDataRow = ({ userInfo, refetch }) => {
+  const axiosSecure = useAxiosSecure()
   const [isOpen, setIsOpen] = useState(false)
-
+  const { email, status, role } = userInfo || {}
+  const handleUpdate = async selectdRole => {
+    if (role === selectdRole) return
+    try {
+      await axiosSecure.patch(`/users/role/${email}`, {role: selectdRole})
+      toast.success("Updated Successful")
+      refetch()
+    } catch (err) {
+      toast.error(err?.response?.data);
+    }
+    finally{
+      setIsOpen(false)
+    }
+  }
+  
   return (
     <tr>
       <td className='px-5 py-5 border-b border-gray-200 bg-white text-sm'>
-        <p className='text-gray-900 whitespace-no-wrap'>abc@gmail.com</p>
+        <p className='text-gray-900 whitespace-no-wrap'>{email}</p>
       </td>
       <td className='px-5 py-5 border-b border-gray-200 bg-white text-sm'>
-        <p className='text-gray-900 whitespace-no-wrap'>Customer</p>
+        <p className='text-gray-900 whitespace-no-wrap'>{role}</p>
       </td>
       <td className='px-5 py-5 border-b border-gray-200 bg-white text-sm'>
-        <p className='text-red-500 whitespace-no-wrap'>Unavailable</p>
+        <p className={`whitespace-no-wrap ${status === "Success" ? "text-green-500" : status === "Request" ? "text-yellow-500": status ==="Verified" ? "text-sky-500" : "text-red-500"}`}>{status ? status : "Unavailable"}</p>
       </td>
 
       <td className='px-5 py-5 border-b border-gray-200 bg-white text-sm'>
@@ -28,7 +45,7 @@ const UserDataRow = () => {
           <span className='relative'>Update Role</span>
         </span>
         {/* Modal */}
-        <UpdateUserModal isOpen={isOpen} setIsOpen={setIsOpen} />
+        <UpdateUserModal handleUpdate={handleUpdate} role={role} isOpen={isOpen} setIsOpen={setIsOpen} />
       </td>
     </tr>
   )

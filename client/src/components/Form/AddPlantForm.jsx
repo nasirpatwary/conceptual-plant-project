@@ -95,12 +95,7 @@ const AddPlantForm = ({
                 <div className='flex flex-col w-max mx-auto text-center'>
                   <label>
                     <input
-                      onChange={e =>
-                        setUploadImage({
-                          image: e.target.files[0],
-                          url: URL.createObjectURL(e.target.files[0]),
-                        })
-                      }
+                     onChange={(e) => setUploadImage({image: e.target.files[0], url: URL.createObjectURL(e.target.files[0])})}
                       className='text-sm cursor-pointer w-36 hidden'
                       type='file'
                       name='image'
@@ -109,21 +104,27 @@ const AddPlantForm = ({
                       hidden
                     />
                     <div className='bg-lime-500 text-white border border-gray-300 rounded font-semibold cursor-pointer p-1 px-3 hover:bg-lime-500'>
-                      {uploadImage?.image?.name}
+                    {uploadImage?.image?.name}
                     </div>
                   </label>
                 </div>
               </div>
             </div>
-            {uploadImage && uploadImage?.image?.size && (
+            
               <div className='flex gap-5 items-center'>
-                <img className='w-20' src={uploadImage?.url} alt='' />
-                <p>Image Size: {uploadImage?.image?.size} Bytes</p>
+                
+                {
+                uploadImage &&
+                uploadImage?.image?.size &&
+                  <>
+                  <img className='w-20' src={uploadImage?.url} alt="" />
+                  <p>Image Size: {uploadImage.image.size} Bytes</p>
+                  </>
+                }
               </div>
-            )}
-
             {/* Submit Button */}
             <button
+            
               type='submit'
               className='w-full p-3 mt-5 text-center font-medium text-white transition duration-200 rounded shadow-md bg-lime-500 '
             >

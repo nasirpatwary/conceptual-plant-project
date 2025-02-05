@@ -5,14 +5,13 @@ import useAuth from '../../../hooks/useAuth'
 import { useState } from 'react'
 import useAxiosSecure from '../../../hooks/useAxiosSecure'
 import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 
 const AddPlant = () => {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const axiosSecure = useAxiosSecure()
-  const [uploadImage, setUploadImage] = useState({
-    image: { name: 'Upload Button' },
-  })
-  console.log(uploadImage)
+  const [uploadImage, setUploadImage] = useState({image:{name: 'Upload Button'}})
   const [loading, setLoading] = useState(false)
   // handle form submit
   const handleSubmit = async e => {
@@ -29,33 +28,32 @@ const AddPlant = () => {
 
     // seller info
     const seller = {
-      name: user?.displayName,
-      image: user?.photoURL,
       email: user?.email,
+      name: user?.displayName,
+      image: user?.photoURL
     }
-
     // Create plant data object
     const plantData = {
       name,
-      category,
       description,
-      price,
-      quantity,
-      image: imageUrl,
-      seller,
+      category,
+      price, 
+      quantity, 
+      imageUrl, 
+      seller
     }
-
-    console.table(plantData)
     // save plant in db
-    try {
-      // post req
-      await axiosSecure.post('/plants', plantData)
-      toast.success('Data Added Successfully!')
-    } catch (err) {
-      console.log(err)
-    } finally {
-      setLoading(false)
+   try {
+    const {data} = await axiosSecure.post(`${import.meta.env.VITE_API_URL}/plants`, plantData)
+    if (data.insertedId) {
+      toast.success("data added successful")
+      navigate("/dashboard/my-inventory")
     }
+   } catch (error) {
+    toast.error(error);
+   }finally{
+    setLoading(false)
+   }
   }
   return (
     <div>
@@ -66,9 +64,9 @@ const AddPlant = () => {
       {/* Form */}
       <AddPlantForm
         handleSubmit={handleSubmit}
-        uploadImage={uploadImage}
-        setUploadImage={setUploadImage}
         loading={loading}
+        setUploadImage={setUploadImage}
+        uploadImage={uploadImage}
       />
     </div>
   )

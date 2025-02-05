@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom'
 
 const Card = ({ plant }) => {
-  const { name, category, quantity, price, image, _id } = plant || {}
+  const { name, category, quantity, price, imageUrl, _id } = plant || {}
   return (
     <Link
       to={`/plant/${_id}`}
@@ -21,12 +21,12 @@ const Card = ({ plant }) => {
           <img
             className='
                 object-cover 
-                h-full 
+                h-[90%] 
                 w-full 
                 group-hover:scale-110 
                 transition
               '
-            src={image}
+            src={imageUrl}
             alt='Plant Image'
           />
           <div
@@ -41,7 +41,7 @@ const Card = ({ plant }) => {
         <div className='font-semibold text-lg'>Category: {category}</div>
         <div className='font-semibold text-lg'>Quantity: {quantity}</div>
         <div className='flex flex-row items-center gap-1'>
-          <div className='font-semibold'>Price: {price}$</div>
+          <div className='font-semibold'>Price: ${price}</div>
         </div>
       </div>
     </Link>
