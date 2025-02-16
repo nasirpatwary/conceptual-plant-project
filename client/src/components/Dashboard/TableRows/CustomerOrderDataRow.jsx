@@ -16,6 +16,7 @@ const CustomerOrderDataRow = ({order, refetch}) => {
         quantityToUpdate: quantity,
         status: "increase"
       })
+      toast.success("Order cancel successfull!")
       refetch()
     } catch (error) {
       toast.error(error.response.data)

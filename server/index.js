@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const jwt = require('jsonwebtoken')
 const morgan = require('morgan')
+const nodemailer = require("nodemailer");
 
 const port = process.env.PORT || 5000
 const app = express()
@@ -35,7 +36,43 @@ const verifyToken = async (req, res, next) => {
     next()
   })
 }
-
+// transporter create
+const sendEmail = (emailAddress, emailData) => {
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // true for port 465, false for other ports
+    auth: {
+      user: process.env.NODEMAILER_USER,
+      pass: process.env.NODEMAILER_PASS,
+    },
+  });
+  // verify connection
+  transporter.verify((error, success) => {
+    if (error) {
+      console.log(error);
+    }
+    else {
+      console.log("Transporter is ready to emails.", success);
+    }
+  })
+  // transporter sendEmail
+  const mailBody = {
+    from: process.env.NODEMAILER_USER, // sender address
+    to: emailAddress, // list of receivers
+    subject: emailData?.subject, // Subject line
+    text: emailData?.message, // plain text body
+    html: `<p>${emailData?.message}</p>`, // html body 
+  }
+  // send email using nodemailer
+  transporter.sendMail(mailBody, (error, info) => {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log(`Email Sent -----> ${info.response}`);
+    }
+  })
+}
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qhtx1li.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -98,6 +135,7 @@ async function run() {
     })
     // usersCollection save or update a user in db
     app.post("/users/:email", async (req, res) => {
+      sendEmail()
       const email = req.params.email
       const userInfo = req.body
       // check user findOne
@@ -163,13 +201,13 @@ async function run() {
     // get inventory data for seller
     app.get("/plants/seller", verifyToken, verifySeller, async (req, res) => {
       const email = req.user.email
-      const result = await plantsCollection.find({"seller.email": email}).toArray()
+      const result = await plantsCollection.find({ "seller.email": email }).toArray()
       res.send(result)
     })
     // plant seller delete 
     app.delete("/plants/seller/:id", verifyToken, verifySeller, async (req, res) => {
       const id = req.params.id
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const result = await plantsCollection.deleteOne(query)
       res.send(result)
     })
@@ -190,8 +228,22 @@ async function run() {
     app.post("/order", verifyToken, async (req, res) => {
       const orderInfo = req.body
       const result = await ordersCollection.insertOne(orderInfo)
+      // send email
+      if (result?.insertedId) {
+        // To Customer
+        sendEmail(orderInfo?.customer?.email, {
+          subject: "order successful",
+          message: `You've placed an order successfully. Transaction Id: ${result?.insertedId}`
+        })
+        // To Seller
+        sendEmail(orderInfo?.seller, {
+          subject: "Hurry!, you have an order to process.",
+          message: `Get the plants ready for ${orderInfo?.name}`
+        })
+      }
       res.send(result)
     })
+    // customer-order collection
     app.get("/customer/order/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const query = { "customer.email": email }
@@ -230,6 +282,42 @@ async function run() {
 
       res.send(result)
     })
+    // seller-order collection
+    app.get("/seller/order/:email", verifyToken, verifySeller, async (req, res) => {
+      const email = req.params.email;
+      const query = { seller: email }
+      const result = await ordersCollection.aggregate([
+        {
+          $match: query
+        },
+        {
+          $addFields: { plantId: { $toObjectId: "$plantId" } }
+        },
+        {
+          $lookup: {
+            from: "plants",
+            localField: "plantId",
+            foreignField: "_id",
+            as: "plants"
+          }
+        },
+        {
+          $unwind: "$plants"
+        },
+        {
+          $addFields: {
+            name: "$plants.name",
+          }
+        },
+        {
+          $project: {
+            plants: 0
+          }
+        }
+
+      ]).toArray()
+      res.send(result)
+    })
     // reusable app patch nad update
     app.patch("/order/quantity/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
@@ -256,6 +344,67 @@ async function run() {
       }
       const result = await ordersCollection.deleteOne(query)
       res.send(result)
+    })
+    // update order status
+    app.patch("/order/status/:id", verifyToken, verifySeller, async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body
+      const filter = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $set: { status }
+      }
+      const result = await ordersCollection.updateOne(filter, updateDoc)
+      res.send(result)
+    })
+    // admin stat
+    app.get("/admin-stat", verifyToken, verifyAdmin, async (req, res) => {
+      // get total user and total plant
+      const users = await usersCollection.estimatedDocumentCount()
+      // filter admin, seller, cutomer 
+      // const plants = await plantsCollection.countDocuments(parameter recive kore)
+      const plants = await plantsCollection.estimatedDocumentCount()
+      // chart data generate
+      const chartData = await ordersCollection.aggregate([
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: { $toDate: "$_id" }
+              }
+            },
+            quantity: { $sum: "$quantity" },
+            price: { $sum: "$price" },
+            order: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            date: "$_id",
+            quantity: 1,
+            order: 1,
+            price: 1
+          }
+        }
+      ]).next()
+      console.log(chartData);
+      // get total revenue total order
+      const orderDetails = await ordersCollection.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: "$price" },
+            totalOrder: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0
+          }
+        }
+      ]).next()
+      res.send({ users, plants, ...orderDetails, chartData })
     })
     // Send a ping to confirm a successful connection
     // await client.db('admin').command({ ping: 1 })

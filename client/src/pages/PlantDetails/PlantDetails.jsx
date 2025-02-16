@@ -8,8 +8,12 @@ import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import LoadingSpinner from '../../components/Shared/LoadingSpinner'
 import { useQuery } from '@tanstack/react-query'
+import useAuth from '../../hooks/useAuth'
+import useRole from '../../hooks/useRole'
 
 const PlantDetails = () => {
+  const {user} = useAuth()
+  const [role] = useRole()
   let [isOpen, setIsOpen] = useState(false)
   const {id} = useParams()
   const { isPending, error, refetch, data:plant = {} } = useQuery({
@@ -108,7 +112,9 @@ const PlantDetails = () => {
           <div className='flex justify-between'>
             <p className='font-bold text-3xl text-gray-500'>Price: {price}$</p>
             <div>
-              <Button onClick={()=> setIsOpen(!isOpen)} label= {quantity > 0 ? 'Purchase' : "Out of Stock"} />
+              <Button 
+              disabled={!user || user?.email === seller?.email || role !== "customer" || quantity === 0}
+              onClick={()=> setIsOpen(!isOpen)} label= {quantity > 0 ? 'Purchase' : "Out of Stock"} />
             </div>
           </div>
           <hr className='my-6' />

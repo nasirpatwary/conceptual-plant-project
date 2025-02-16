@@ -13,10 +13,14 @@ import toast from 'react-hot-toast'
 import useAxiosSecure from '../../hooks/useAxiosSecure'
 import { useNavigate } from 'react-router-dom'
 
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+const stripePromise = loadStripe(import.meta.env.VITE_PAYMENT_PUBLIC_KEY);
+
 const PurchaseModal = ({ closeModal, isOpen, plant, refetch }) => {
   const navigate = useNavigate()
   const axiosSecure = useAxiosSecure()
-  const { category, name, price, quantity, _id, seller} = plant || {}
+  const { category, name, price, quantity, _id, seller } = plant || {}
   const { user } = useAuth()
   console.log(user);
   // Total Price Calculation
@@ -47,8 +51,8 @@ const PurchaseModal = ({ closeModal, isOpen, plant, refetch }) => {
     }
     setTotalQuantity(value)
     setTotalPrice(value * price)
-    setPurchaseInfo((prv) =>{
-      return {...prv, quantity: value, price: value * price}
+    setPurchaseInfo((prv) => {
+      return { ...prv, quantity: value, price: value * price }
     })
   }
   const handlePurchase = async () => {
@@ -60,11 +64,11 @@ const PurchaseModal = ({ closeModal, isOpen, plant, refetch }) => {
       })
       refetch()
       navigate("/dashboard/my-orders")
-      toast.success("Order Successfuly") 
+      toast.success("Order Successfuly")
     } catch (error) {
       console.log(error);
     }
-    finally{
+    finally {
       closeModal()
     }
   }
@@ -121,7 +125,7 @@ const PurchaseModal = ({ closeModal, isOpen, plant, refetch }) => {
                 <div className='space-x-2 mt-2 text-sm'>
                   <label htmlFor='quantity' className='text-gray-600'>
                     Quantity:
-                  </label>  
+                  </label>
                   <input
                     onChange={(e) => handleQuantity(parseInt(e.target.value))}
                     value={totalQuantity}
@@ -142,14 +146,18 @@ const PurchaseModal = ({ closeModal, isOpen, plant, refetch }) => {
                     className='p-2 text-gray-800 border border-lime-300 focus:outline-lime-500 rounded-md bg-white'
                     name='address'
                     id='address'
-                    onChange={(e)=> setPurchaseInfo((prv) =>{
-                      return {...prv, address: e.target.value}
+                    onChange={(e) => setPurchaseInfo((prv) => {
+                      return { ...prv, address: e.target.value }
                     })}
                     type='text'
                     placeholder='Shipping Addrees...'
                     required
                   />
                 </div>
+                {/* CheckOutFrom */}
+                <Elements stripe={stripePromise}>
+                  {/* <CheckoutForm /> */}
+                </Elements>
                 <div className='mt-2'>
                   <Button onClick={handlePurchase} small={true} label={`Pay${totalPrice}$`}></Button>
                 </div>
